@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Version = "0.1.1"
+	Version = "0.1.2"
 	cjsTemplate = `const { app, BrowserWindow } = require('electron')
 const path = require('path')
 
@@ -31,9 +31,13 @@ function createWindow () {
 
     // 2. 加载你的 index.html
     win.loadFile('{{.IndexPath}}')
-    
+
+    {{if .DebugMode}}// 调试模式：自动打开开发者工具
+    win.webContents.openDevTools()
+	{{end}}
+
     {{if .DisableMenu}}// 可选：启动时移除默认菜单栏
-    win.setMenu(null) 
+    win.setMenu(null)
 	{{end}}
 
     {{if .ZoomFactor}}// 在加载文件后设置缩放
@@ -68,6 +72,7 @@ func main() {
 	iconPath := flag.String("icon", "", "图标地址 (可选)")
 	disableMenu := flag.Bool("disable-menu", false, "禁用基础菜单")
 	zoomFactor := flag.Float64("zoom", 0, "缩放比例 (可选)")
+	debugMode := flag.Bool("debug", false, "启用调试模式 (自动打开开发者工具)")
 	electronBin := flag.String("electron", "", "electron 二进制文件地址 (可选，也可通过 ELECTRON_BIN_PATH 环境变量设置)")
 
 	flag.Parse()
@@ -139,12 +144,14 @@ func main() {
 		DisableMenu   bool
 		ZoomFactor    float64
 		Percentage    string
+		DebugMode     bool
 	}{
 		IndexPath:     *indexPath,
 		IconPath:      *iconPath,
 		DisableMenu:   *disableMenu,
 		ZoomFactor:    *zoomFactor,
 		Percentage:    percentage,
+		DebugMode:     *debugMode,
 	}
 
 	tmpl, err := template.New("electron").Parse(cjsTemplate)
