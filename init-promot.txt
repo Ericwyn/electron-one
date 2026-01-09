@@ -1,0 +1,78 @@
+能不能给我写一个 electron-one 脚本, 使用 golang 来写, 主要业务逻辑如下
+
+用来在安装了 electron 的时候快速的将本地 html 项目以 electron 形式运行
+
+
+electron-one 支持以下参数
+- index: 启动的 html 文件
+    不可为空
+- icon 图标地址 可为空
+
+- disable-menu 禁用基础菜单
+    win.setMenu(null) 
+- zoom 缩放比例
+    win.webContents.on('dom-ready', () => {
+        win.webContents.setZoomFactor(1.25) // 设置为 125%
+    })
+
+
+在使用之前，需要先配置 ELECTRON_BIN_PATH 环境变量，值为 electron 二进制文件的路径
+当我使用
+
+electron-one \ 
+    -index /path/dist/index.html \
+    -icon /path/public/icon_512px.png \ 
+    -disable-menu -zoom 1.25
+
+electrion 会先创建一个 electron-one.cjs 脚本在 index.html 所在目录下(如果有旧的 electron-one.cjs 文件，则会覆盖)
+
+cjs 文件内容如下
+
+```
+    const { app, BrowserWindow } = require('electron')
+    const path = require('path')
+
+    function createWindow () {
+    // 1. 在这里配置窗口的大小和图标
+    const win = new BrowserWindow({
+        width: 1400,                  // 设置宽度
+        height: 900,                  // 设置高度
+        // resizable: false,          // 如果不想让用户调整大小，取消注释这行
+        icon: "/path/public/icon_512px.png", // 设置图标 (确保目录下有 icon.png)
+        webPreferences: {
+        nodeIntegration: true,      // 根据你的需求开启/关闭
+        contextIsolation: false
+        }
+    })
+
+    // 2. 加载你的 index.html
+    win.loadFile('/path/dist/index.html')
+    
+    // 可选：启动时移除默认菜单栏
+    win.setMenu(null) 
+
+    // 在加载文件后设置缩放
+    // 注意：有时为了确保生效，建议放在 'dom-ready' 事件里
+    win.webContents.on('dom-ready', () => {
+        win.webContents.setZoomFactor(1.25) // 设置为 125%
+    })
+    }
+
+    app.whenReady().then(() => {
+    createWindow()
+
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow()
+        }
+    })
+    })
+
+    app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit()
+    }
+    })
+```
+
+之后调用 ELECTRON_BIN_PATH  electron-one.cjs 启动应用
